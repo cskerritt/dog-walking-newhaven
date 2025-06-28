@@ -32,26 +32,78 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     });
 });
 
-// Contact Form Handler
+// Contact Form Handler with improved UX
 document.getElementById('contact-form').addEventListener('submit', function(e) {
-    e.preventDefault();
+    const submitButton = this.querySelector('button[type="submit"]');
+    const originalText = submitButton.textContent;
     
-    // Get form data
-    const formData = {
-        name: document.getElementById('name').value,
-        email: document.getElementById('email').value,
-        phone: document.getElementById('phone').value,
-        area: document.getElementById('area').value,
-        message: document.getElementById('message').value
-    };
+    // Show loading state
+    submitButton.textContent = 'Sending...';
+    submitButton.disabled = true;
     
-    // In a real application, you would send this data to a server
-    // For now, we'll just show a success message
-    alert('Thank you for your interest! We will contact you within 24 hours to schedule your dog\'s first walk.');
+    // Simulate form processing (replace with actual backend integration)
+    setTimeout(() => {
+        // Reset button state
+        submitButton.textContent = originalText;
+        submitButton.disabled = false;
+        
+        // Show success message
+        showNotification('Thank you! We\'ll contact you within 24 hours to schedule your dog\'s first walk.', 'success');
+        
+        // Reset form
+        this.reset();
+    }, 1500);
     
-    // Reset form
-    this.reset();
+    // Prevent default if not using Formspree
+    if (!this.action.includes('formspree.io')) {
+        e.preventDefault();
+    }
 });
+
+// Notification system
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.textContent = message;
+    
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${type === 'success' ? '#10b981' : '#3b82f6'};
+        color: white;
+        padding: 15px 20px;
+        border-radius: 5px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        z-index: 1001;
+        max-width: 300px;
+        animation: slideIn 0.3s ease;
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => {
+            if (document.body.contains(notification)) {
+                document.body.removeChild(notification);
+            }
+        }, 300);
+    }, 5000);
+}
+
+// Chat Widget Functionality
+function toggleChat() {
+    const chatPopup = document.getElementById('chat-popup');
+    chatPopup.classList.toggle('show');
+    
+    if (typeof gtag !== 'undefined' && chatPopup.classList.contains('show')) {
+        gtag('event', 'chat_opened', {
+            'event_category': 'engagement',
+            'event_label': 'chat_widget'
+        });
+    }
+}
 
 // Add navbar background on scroll
 window.addEventListener('scroll', function() {
@@ -103,4 +155,49 @@ style.textContent = `
         }
     }
 `;
+
+// Make toggleChat available globally
+window.toggleChat = toggleChat;
 document.head.appendChild(style);
+
+// Add notification animations
+const notificationStyle = document.createElement('style');
+notificationStyle.textContent = `
+    @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(100%); opacity: 0; }
+    }
+`;
+document.head.appendChild(notificationStyle);
+
+// Analytics tracking
+document.addEventListener('click', function(e) {
+    if (typeof gtag !== 'undefined') {
+        if (e.target.href && e.target.href.includes('tel:')) {
+            gtag('event', 'phone_call', {
+                'event_category': 'contact',
+                'event_label': 'click_to_call'
+            });
+        }
+        if (e.target.href && e.target.href.includes('#booking')) {
+            gtag('event', 'booking_click', {
+                'event_category': 'conversion',
+                'event_label': 'book_now_button'
+            });
+        }
+    }
+});
+
+// Close chat when clicking outside
+document.addEventListener('click', function(e) {
+    const chatWidget = document.getElementById('chat-widget');
+    const chatPopup = document.getElementById('chat-popup');
+    
+    if (chatWidget && !chatWidget.contains(e.target) && chatPopup && chatPopup.classList.contains('show')) {
+        chatPopup.classList.remove('show');
+    }
+});
